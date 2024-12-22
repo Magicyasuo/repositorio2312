@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Archivos del Sarare - Inicio</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <!-- Anime.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffffff, #ffffff);
+        }
+        .navbar {
+            background-color: #003366 !important;
+        }
+        .navbar-brand, .navbar-nav .nav-link, .navbar-text a {
+            color: #ffffff !important;
+            transition: color 0.2s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #f0f0f0 !important;
+        }
+        .hero {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #003366;
+        }
+        .hero p {
+            font-size: 1rem;
+            color: #333;
+        }
+        .stats-card {
+            border: none;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem;
+            text-align: center;
+            opacity: 0; /* Para animación con Anime.js */
+        }
+        .stats-card i {
+            font-size: 2rem;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        .stats-card h5 {
+            font-weight: 600;
+            color: #003366;
+        }
+        .stats-card p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 1rem;
+        }
+        .quick-links .card {
+            border: none;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            padding: 1rem;
+            transition: transform 0.1s ease;
+            opacity: 0; /* Para animación con Anime.js */
+        }
+        .quick-links .card:hover {
+            transform: scale(1.02);
+        }
+        .quick-links i {
+            font-size: 2rem;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        .quick-links h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        footer {
+            margin-top: 3rem;
+            padding: 1rem;
+            background: #003366;
+            color: #ffffff;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .login-btn {
+            background: #0069d9;
+            color: #ffffff;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .login-btn:hover {
+            background: #005bb5;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 576px) {
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-3 animate__animated animate__fadeInDown">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-archive-fill me-2" style="font-size:1.5rem;"></i> Hospital del Sarare
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="mainNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link animate__animated animate__fadeInDown animate__delay-1s" href="{% url 'fuid_list' %}">FUID</a></li>
+                    <li class="nav-item"><a class="nav-link animate__animated animate__fadeInDown animate__delay-1s" href="{% url 'lista_registros' %}">Registros</a></li>
+                    {% if request.user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link animate__animated animate__fadeInDown animate__delay-1s" href="{% url 'logout' %}">Cerrar sesión</a></li>
+                    {% else %}
+                    <li class="nav-item"><a class="nav-link animate__animated animate__fadeInDown animate__delay-1s" href="{% url 'login' %}">Iniciar sesión</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container animate__animated animate__fadeInUp" id="mainContent">
+        <!-- Hero / Welcome Section -->
+        <div class="hero animate__animated animate__fadeInUp" id="heroSection">
+            <h1>Central de Archivos del Sarare</h1>
+            <p>Bienvenido al sistema de gestión documental del Hospital del Sarare. Aquí podrás administrar la información archivística de forma organizada, segura y eficiente.</p>
+            <p><strong>Misión:</strong> Garantizar la gestión eficiente y segura de la documentación producida por el Hospital del Sarare, facilitando el acceso a la información para la toma de decisiones y asegurando la conservación de la memoria institucional.</p>
+            <p><strong>Visión:</strong> Ser la plataforma líder en la región en gestión documental, impulsando la innovación, la digitalización y el cumplimiento de los estándares archivísticos para fortalecer la transparencia, la accesibilidad y la optimización de recursos del Hospital del Sarare.</p>
+        </div>
+
+ <!-- Estadísticas o Datos Clave -->
+<h2 class="section-title animate__animated animate__fadeInDown">Indicadores Clave</h2>
+<div class="row g-3 mb-4" id="statsRow">
+    <!-- Indicador: FUID Totales -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <i class="bi bi-folder-fill" style="font-size: 2rem; color: #007bff;"></i>
+                <h5 class="mt-2">FUID Totales</h5>
+                <p class="text-muted">{{ total_fuids }} FUID registrados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicador: Registros -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-text-fill" style="font-size: 2rem; color: #007bff;"></i>
+                <h5 class="mt-2">Registros</h5>
+                <p class="text-muted">{{ total_registros }} documentos archivados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicador: Último FUID -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card text-center shadow">
+            <div class="card-body">
+                <i class="bi bi-check-square-fill" style="font-size: 2rem; color: #007bff;"></i>
+                <h5 class="mt-2">Último FUID</h5>
+                <p class="text-muted">ID: {{ ultimo_fuid_id }} / Fecha: {{ ultimo_fuid_fecha|date:"Y-m-d" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nuevo Bloque: Lista de Fichas -->
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'lista_fichas' %}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <i class="bi bi-clipboard-data" style="font-size: 2rem; color: #007bff;"></i>
+                    <h5 class="mt-2">Lista de Fichas</h5>
+                    <p class="text-muted">Consultar todas las fichas registradas</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Accesos Rápidos -->
+<h2 class="section-title animate__animated animate__fadeInDown">Accesos Rápidos</h2>
+<div class="row quick-links g-3 mb-4" id="quickLinksRow">
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'fuid_form' %}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <i class="bi bi-folder-plus" style="font-size: 2rem; color: #007bff;"></i>
+                    <h5 class="mt-2">Crear FUID</h5>
+                    <p class="text-muted">Iniciar nuevo formulario</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'fuid_list' %}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <i class="bi bi-card-list" style="font-size: 2rem; color: #007bff;"></i>
+                    <h5 class="mt-2">Lista de FUID</h5>
+                    <p class="text-muted">Ver todos los FUID generados</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'crear_registro' %}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <i class="bi bi-file-earmark-plus" style="font-size: 2rem; color: #007bff;"></i>
+                    <h5 class="mt-2">Crear Registro</h5>
+                    <p class="text-muted">Agregar un nuevo documento</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'lista_registros' %}" class="text-decoration-none text-dark">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <i class="bi bi-journal-text" style="font-size: 2rem; color: #007bff;"></i>
+                    <h5 class="mt-2">Lista de Registros</h5>
+                    <p class="text-muted">Consultar documentos archivados</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+        <!-- Sección de Login si no autenticado -->
+        {% if not request.user.is_authenticated %}
+        <div class="text-center mb-4">
+            <a href="{% url 'login' %}" class="btn login-btn animate__animated animate__fadeInUp"><i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión</a>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <footer class="animate__animated animate__fadeInUp">
+        <p>© {{ current_year }} Hospital del Sarare - Central de Archivos del Sarare. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animación con Anime.js para las tarjetas de stats
+            anime({
+                targets: '#statsRow .stats-card',
+                opacity: [0,1],
+                translateY: [30,0],
+                duration: 800,
+                delay: anime.stagger(100),
+                easing: 'easeOutExpo'
+            });
+
+            // Animación con Anime.js para las tarjetas de accesos rápidos
+            anime({
+                targets: '#quickLinksRow .card',
+                opacity: [0,1],
+                translateY: [30,0],
+                duration: 800,
+                delay: anime.stagger(100, {start:500}),
+                easing: 'easeOutExpo'
+            });
+        });
+    </script>
+</body>
+</html>

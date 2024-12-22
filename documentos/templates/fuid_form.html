@@ -1,0 +1,326 @@
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario de FUID</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffffff, #ffffff);
+        }
+        .navbar {
+            background-color: #003366 !important;
+        }
+        .navbar-brand, .navbar-nav .nav-link, .navbar-text a {
+            color: #ffffff !important;
+            transition: color 0.2s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #f0f0f0 !important;
+        }
+        .hero {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #003366;
+        }
+        .hero p {
+            font-size: 1rem;
+            color: #333;
+        }
+        .stats-card {
+            border: none;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem;
+            text-align: center;
+            opacity: 0;
+        }
+        .stats-card i {
+            font-size: 2rem;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        .stats-card h5 {
+            font-weight: 600;
+            color: #003366;
+        }
+        .stats-card p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 1rem;
+        }
+        .quick-links .card {
+            border: none;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            padding: 1rem;
+            transition: transform 0.1s ease;
+            opacity: 0;
+        }
+        .quick-links .card:hover {
+            transform: scale(1.02);
+        }
+        .quick-links i {
+            font-size: 2rem;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        .quick-links h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+        footer {
+            margin-top: 3rem;
+            padding: 1rem;
+            background: #003366;
+            color: #ffffff;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        footer p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .login-btn {
+            background: #0069d9;
+            color: #ffffff;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .login-btn:hover {
+            background: #005bb5;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 576px) {
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+        }
+        .fw-semibold {
+            font-weight: 600;
+        }
+        .text-primary {
+            color: #003366 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand navbar-dark mb-3 animate__animated animate__fadeInDown">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Gestión de Archivos</a>
+            <div class="collapse navbar-collapse justify-content-end">
+                <ul class="navbar-nav mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        {% if request.user.is_authenticated %}
+                            <span class="navbar-text">
+                                Bienvenido, {{ request.user.username }} | <a href="{% url 'logout' %}">Cerrar sesión</a>
+                            </span>
+                        {% else %}
+                            <a class="nav-link" href="{% url 'login' %}">Iniciar sesión</a>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        
+    </nav>
+    <div class="container animate__animated animate__fadeInUp" id="mainContent">
+        <div class="mb-4">
+            <h1 class="mb-4">{{ view.action|default:"Crear" }} FUID</h1>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" id="filtro-form" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-4">
+                            <label for="id_usuario" class="form-label fw-semibold">Filtrar por Usuario</label>
+                            <select name="usuario" id="id_usuario" class="form-select">
+                                <option value="">-- Seleccione un Usuario --</option>
+                                {% for user in form.fields.usuario.queryset %}
+                                    <option value="{{ user.id }}" {% if user.id|stringformat:"s" == request.GET.usuario %}selected{% endif %}>
+                                        {{ user.username }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_fecha_inicio" class="form-label fw-semibold">Fecha Inicio</label>
+                            <input type="date" name="fecha_inicio" id="id_fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="id_fecha_fin" class="form-label fw-semibold">Fecha Fin</label>
+                            <input type="date" name="fecha_fin" id="id_fecha_fin" class="form-control" value="{{ request.GET.fecha_fin }}">
+                        </div>
+                        <div class="col-12 text-end mt-3">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Datos del FUID</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.errors }}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.entidad_productora.id_for_label }}" class="form-label fw-semibold">Entidad Productora</label>
+                                {{ form.entidad_productora|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.unidad_administrativa.id_for_label }}" class="form-label fw-semibold">Unidad Administrativa</label>
+                                {{ form.unidad_administrativa|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.oficina_productora.id_for_label }}" class="form-label fw-semibold">Oficina Productora</label>
+                                {{ form.oficina_productora|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.objeto.id_for_label }}" class="form-label fw-semibold">Objeto</label>
+                                {{ form.objeto|add_class:"form-control" }}
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 text-primary">Elaborado Por</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.elaborado_por_nombre.id_for_label }}" class="form-label fw-semibold">Nombre</label>
+                                {{ form.elaborado_por_nombre|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.elaborado_por_cargo.id_for_label }}" class="form-label fw-semibold">Cargo</label>
+                                {{ form.elaborado_por_cargo|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.elaborado_por_lugar.id_for_label }}" class="form-label fw-semibold">Lugar</label>
+                                {{ form.elaborado_por_lugar|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.elaborado_por_fecha.id_for_label }}" class="form-label fw-semibold">Fecha</label>
+                                {{ form.elaborado_por_fecha|add_class:"form-control" }}
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 text-primary">Entregado Por</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.entregado_por_nombre.id_for_label }}" class="form-label fw-semibold">Nombre</label>
+                                {{ form.entregado_por_nombre|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.entregado_por_cargo.id_for_label }}" class="form-label fw-semibold">Cargo</label>
+                                {{ form.entregado_por_cargo|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.entregado_por_lugar.id_for_label }}" class="form-label fw-semibold">Lugar</label>
+                                {{ form.entregado_por_lugar|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.entregado_por_fecha.id_for_label }}" class="form-label fw-semibold">Fecha</label>
+                                {{ form.entregado_por_fecha|add_class:"form-control" }}
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 text-primary">Recibido Por</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.recibido_por_nombre.id_for_label }}" class="form-label fw-semibold">Nombre</label>
+                                {{ form.recibido_por_nombre|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.recibido_por_cargo.id_for_label }}" class="form-label fw-semibold">Cargo</label>
+                                {{ form.recibido_por_cargo|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.recibido_por_lugar.id_for_label }}" class="form-label fw-semibold">Lugar</label>
+                                {{ form.recibido_por_lugar|add_class:"form-control" }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="{{ form.recibido_por_fecha.id_for_label }}" class="form-label fw-semibold">Fecha</label>
+                                {{ form.recibido_por_fecha|add_class:"form-control" }}
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 text-primary">Registros</h5>
+                        <div class="mb-3">
+                            <label for="{{ form.registros.id_for_label }}" class="form-label fw-semibold">Registros</label>
+                            <div class="d-flex align-items-center gap-2">
+                                {{ form.registros }}
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllBtn">Seleccionar todos</button>
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-success">Guardar</button>
+                            <a href="{% url 'fuid_list' %}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <footer class="animate__animated animate__fadeInUp">
+            <p>© {{ current_year }} Hospital del Sarare - Central de Archivos del Sarare. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectAllBtn = document.getElementById('selectAllBtn'); // Botón de seleccionar todos
+            const checkboxes = document.querySelectorAll('input[name="registros"]'); // Todas las casillas de verificación del campo "registros"
+    
+            if (selectAllBtn && checkboxes.length > 0) {
+                selectAllBtn.addEventListener('click', () => {
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = true; // Marca cada casilla como seleccionada
+                    });
+                });
+            }
+        });
+    </script>
+    
+</body>
+</html>

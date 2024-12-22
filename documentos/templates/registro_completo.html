@@ -1,0 +1,336 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Visualización completa de todos los campos del registro documental con filtros por columna.">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tabla Completa de Registros</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- DataTables Buttons CSS -->
+    <link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <!-- Anime.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #fefefe, #f2f2f2);
+            margin: 0;
+            padding: 0;
+        }
+        nav.navbar {
+            background-color: #003366 !important;
+            opacity: 0;
+        }
+        .navbar-brand, .navbar-nav .nav-link, .navbar-text a {
+            color: #ffffff !important;
+            transition: color 0.2s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #cce5ff !important;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0;
+            color: #003366;
+        }
+
+        .btn-success.btn-sm {
+            background-color: #28a745 !important;
+            border: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-success.btn-sm:hover {
+            background-color: #218838 !important;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        table {
+            font-size: 0.75rem;
+            table-layout: fixed;
+            width: 100%;
+        }
+        th, td {
+            text-align: left;
+            vertical-align: middle;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+            height: 40px;
+        }
+        .table th {
+            background-color: #003366;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f8f9fa;
+        }
+        .table-striped tbody tr:hover {
+            background-color: #e6e6e6 !important;
+        }
+
+        .btn-excel {
+            background-color: #28a745;
+            color: #ffffff;
+            transition: transform 0.2s ease;
+        }
+        .btn-excel:hover {
+            background-color: #218838;
+            transform: scale(1.05);
+        }
+        .btn-pdf {
+            background-color: #dc3545;
+            color: #ffffff;
+            transition: transform 0.2s ease;
+        }
+        .btn-pdf:hover {
+            background-color: #c82333;
+            transform: scale(1.05);
+        }
+
+        .dataTables_wrapper .dataTables_filter {
+            float: left !important;
+            text-align: left;
+        }
+        .dataTables_wrapper .dataTables_paginate {
+            float: left !important;
+        }
+
+        /* Transiciones y animaciones del contenedor principal */
+        #mainContainer {
+            opacity: 0;
+        }
+
+        /* Estilo para los campos de búsqueda del thead */
+        thead input {
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 0.75rem;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        /* Efecto sutil en las tarjetas de exportación */
+        .dt-buttons .btn {
+            margin-right: 0.5rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dt-buttons .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-light mb-3 animate__animated animate__fadeInDown">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="bi bi-archive-fill me-2" style="font-size:1.5rem;"></i> Gestión de Archivos
+            </a>
+            <span class="navbar-text">
+                {% if request.user.is_authenticated %}
+                    Bienvenido, {{ request.user.username }} | <a href="{% url 'logout' %}">Cerrar sesión</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Iniciar sesión</a>
+                {% endif %}
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid animate__animated animate__fadeInUp" id="mainContainer">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="animate__animated animate__fadeInDown">Registros Completos</h1>
+            <a href="{% url 'crear_registro' %}" class="btn btn-success btn-sm animate__animated animate__fadeInDown animate__delay-1s">
+                <i class="bi bi-plus-circle"></i> Nuevo
+            </a>
+        </div>
+
+        <div class="table-responsive" style="overflow-x:auto;">
+            <table id="tablaCompleta" class="table table-striped table-bordered animate__animated animate__fadeInUp animate__delay-1s">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Número de Orden</th>
+                        <th style="width: 170px;">Código</th>
+                        <th style="width: 170px;">Código de Serie</th>
+                        <th style="width: 170px;">Código de Subserie</th>
+                        <th style="width: 200px;">Unidad Documental</th>
+                        <th style="width: 120px;">Fecha de Archivo</th>
+                        <th style="width: 120px;">Fecha Inicial</th>
+                        <th style="width: 120px;">Fecha Final</th>
+                        <th style="width: 60px;">Soporte Físico</th>
+                        <th style="width: 60px;">Soporte Electrónico</th>
+                        <th style="width: 100px;">Caja</th>
+                        <th style="width: 100px;">Carpeta</th>
+                        <th style="width: 120px;">Tomo/Legajo</th>
+                        <th style="width: 100px;">Número de Folios</th>
+                        <th style="width: 120px;">Tipo</th>
+                        <th style="width: 100px;">Cantidad</th>
+                        <th style="width: 150px;">Ubicación</th>
+                        <th style="width: 120px;">Cantidad Electrónica</th>
+                        <th style="width: 150px;">Tamaño Electrónico</th>
+                        <th style="width: 200px;">Notas</th>
+                        <th style="width: 150px;">Creado Por</th>
+                        <th style="width: 120px;">Fecha de Creación</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                    <tr>
+                        <th><input type="text" placeholder="Número de Orden" /></th>
+                        <th><input type="text" placeholder="Código" /></th>
+                        <th><input type="text" placeholder="Código de Serie" /></th>
+                        <th><input type="text" placeholder="Código de Subserie" /></th>
+                        <th><input type="text" placeholder="Unidad Documental" /></th>
+                        <th><input type="text" placeholder="Fecha de Archivo" /></th>
+                        <th><input type="text" placeholder="Fecha Inicial" /></th>
+                        <th><input type="text" placeholder="Fecha Final" /></th>
+                        <th><input type="text" placeholder="Soporte Físico" /></th>
+                        <th><input type="text" placeholder="Soporte Electrónico" /></th>
+                        <th><input type="text" placeholder="Caja" /></th>
+                        <th><input type="text" placeholder="Carpeta" /></th>
+                        <th><input type="text" placeholder="Tomo/Legajo" /></th>
+                        <th><input type="text" placeholder="Número de Folios" /></th>
+                        <th><input type="text" placeholder="Tipo" /></th>
+                        <th><input type="text" placeholder="Cantidad" /></th>
+                        <th><input type="text" placeholder="Ubicación" /></th>
+                        <th><input type="text" placeholder="Cant. Electrónica" /></th>
+                        <th><input type="text" placeholder="Tamaño Electrónico" /></th>
+                        <th><input type="text" placeholder="Notas" /></th>
+                        <th><input type="text" placeholder="Creado Por" /></th>
+                        <th><input type="text" placeholder="Fecha de Creación" /></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.numero_orden }}</td>
+                        <td>{{ registro.codigo }}</td>
+                        <td>{{ registro.codigo_serie }}</td>
+                        <td>{{ registro.codigo_subserie }}</td>
+                        <td>{{ registro.unidad_documental }}</td>
+                        <td>{{ registro.fecha_archivo }}</td>
+                        <td>{{ registro.fecha_inicial }}</td>
+                        <td>{{ registro.fecha_final }}</td>
+                        <td>{% if registro.soporte_fisico %}✔{% else %}✖{% endif %}</td>
+                        <td>{% if registro.soporte_electronico %}✔{% else %}✖{% endif %}</td>
+                        <td>{{ registro.caja }}</td>
+                        <td>{{ registro.carpeta }}</td>
+                        <td>{{ registro.tomo_legajo_libro }}</td>
+                        <td>{{ registro.numero_folios }}</td>
+                        <td>{{ registro.tipo }}</td>
+                        <td>{{ registro.cantidad }}</td>
+                        <td>{{ registro.ubicacion }}</td>
+                        <td>{{ registro.cantidad_documentos_electronicos }}</td>
+                        <td>{{ registro.tamano_documentos_electronicos }}</td>
+                        <td>{{ registro.notas }}</td>
+                        <td>{{ registro.creado_por }}</td>
+                        <td>{{ registro.fecha_creacion }}</td>
+                        <td>
+                            <a href="{% url 'editar_registro' registro.id %}" class="btn btn-warning btn-sm"><i class="bi bi-pencil"></i> Editar</a>
+                            <a href="{% url 'eliminar_registro' registro.id %}" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Eliminar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="22" class="text-center">No hay registros disponibles.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var table = $('#tablaCompleta').DataTable({
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+                },
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                responsive: false,
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: 'Exportar a Excel',
+                        className: 'btn btn-excel btn-sm',
+                        filename: 'Registros_Completos_' + new Date().toISOString().slice(0, 10)
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: 'Exportar a PDF',
+                        className: 'btn btn-pdf btn-sm',
+                        filename: 'Registros_Completos_' + new Date().toISOString().slice(0, 10),
+                        orientation: 'landscape',
+                        pageSize: 'A4'
+                    }
+                ]
+            });
+
+            // Aplicar la búsqueda por columna
+            $('#tablaCompleta thead tr:eq(1) th input').on('keyup change', function () {
+                var columnIndex = $(this).parent().index();
+                table.column(columnIndex).search(this.value).draw();
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animar el navbar
+            anime({
+                targets: 'nav.navbar',
+                opacity: [0,1],
+                translateY: [-20,0],
+                duration: 800,
+                easing: 'easeOutExpo'
+            });
+
+            // Animar el contenedor principal
+            anime({
+                targets: '#mainContainer',
+                opacity: [0,1],
+                duration: 800,
+                easing: 'easeOutExpo',
+                delay: 300
+            });
+
+            // Animar las filas de la tabla
+            anime({
+                targets: '#tablaCompleta tbody tr',
+                opacity: [0,1],
+                translateY: [20,0],
+                duration: 500,
+                delay: anime.stagger(50),
+                easing: 'easeOutExpo'
+            });
+        });
+    </script>
+</body>
+</html>
