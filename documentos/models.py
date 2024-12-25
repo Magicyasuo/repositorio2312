@@ -87,7 +87,7 @@ class RegistroDeArchivo(models.Model):
     codigo_serie = models.ForeignKey(SerieDocumental, on_delete=models.CASCADE, related_name="registros")
     codigo_subserie = models.ForeignKey(SubserieDocumental, on_delete=models.CASCADE, blank=True, null=True, related_name="registros")
     unidad_documental = models.CharField(max_length=255)
-    fecha_archivo = models.DateField()
+    fecha_archivo = models.DateField(blank=True, null=True)
     fecha_inicial = models.DateField(blank=True, null=True)
     fecha_final = models.DateField(blank=True, null=True)
     soporte_fisico = models.BooleanField(default=False)
@@ -107,6 +107,9 @@ class RegistroDeArchivo(models.Model):
 
     def __str__(self):
         return f"{self.numero_orden} - {self.unidad_documental or 'Sin Nombre'}"
+    
+
+    
 
 
 class PermisoUsuarioSerie(models.Model):

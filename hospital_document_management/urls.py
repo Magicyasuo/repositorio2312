@@ -40,10 +40,13 @@ urlpatterns = [
     path('registros/welcome/', views.welcome_view, name='welcome'),
     path('detalle-ficha/<int:consecutivo>/', views.detalle_ficha_paciente, name='detalle_ficha'),
     path('editar-ficha/<int:consecutivo>/', views.EditarFichaPaciente.as_view(), name='editar_ficha'),
+    
 
 
 
     # Redirige la raíz del proyecto (/) a la página de registros
     path('', lambda request: redirect('welcome')),
+
+    
 ]
 

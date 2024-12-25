@@ -1,42 +1,33 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
 {% load static %}
-
 {% block title %}Formulario de Registro{% endblock %}
-
 {% block content %}
 <!-- Cargamos Animate.css y Anime.js aquí mismo para animaciones -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
-<!-- Estilos internos -->
+<!-- ocultar elementos de soporte Electrónico y Físico al cargar la página -->
 <style>
     .hidden {
-        display: none;
-    }
-
-    /* Transición suave en botones y tarjetas */
-    .btn, .card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .card:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    }
-
-    .animate-delay-1s {
-        animation-delay: 1s;
-    }
+    display: none;
+}
 </style>
 
-<!-- Botón Volver -->
 <a href="{% url 'lista_registros' %}" class="btn btn-secondary mb-3 animate__animated animate__fadeInLeft">
     <i class="bi bi-arrow-left"></i> Volver al listado
 </a>
+
+{% if messages %}
+<div>
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
 <div class="container py-4 animate__animated animate__fadeInUp animate-delay-1s" id="formContainer">
     <h1 class="mb-4 animate__animated animate__fadeInDown" id="formTitle">Registro de Archivo</h1>
@@ -67,11 +58,6 @@
         <div class="mb-3">
             <label for="{{ form.unidad_documental.id_for_label }}" class="form-label">Unidad Documental</label>
             {{ form.unidad_documental|add_class:"form-control" }}
-        </div>
-
-        <div class="mb-3">
-            <label for="{{ form.fecha_archivo.id_for_label }}" class="form-label">Fecha de Archivo</label>
-            {{ form.fecha_archivo|add_class:"form-control" }}
         </div>
 
         <div class="mb-3">
@@ -146,6 +132,10 @@
         <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Guardar</button>
     </form>
 </div>
+
+<footer>
+    <p>&copy; {{ current_year }} Hospital del Sarare - Central de Archivos del Sarare.</p>
+</footer>
 
 <!-- Scripts para la lógica interna -->
 <script>
@@ -225,4 +215,26 @@
         });
     });
 </script>
+<script>
+    // Desvanecer automáticamente los mensajes después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            setTimeout(function() {
+                alert.classList.add('fade-out'); // Añade una clase para la animación
+                setTimeout(function() {
+                    alert.remove(); // Elimina el mensaje del DOM después de la animación
+                }, 1000); // Espera 1 segundo para que termine la animación
+            }, 5000); // Mensaje permanece visible por 5 segundos
+        });
+    });
+</script>
+
+<style>
+    .fade-out {
+        opacity: 0;
+        transition: opacity 1s ease-out;
+    }
+</style>
+
 {% endblock %}

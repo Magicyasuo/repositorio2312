@@ -44,22 +44,22 @@ def lista_registros(request):
 
 @login_required
 def crear_registro(request):
-    print("Vista 'crear_registro' ejecutándose...")  # Confirmación de ejecución
     if request.method == 'POST':
-        print("Datos POST enviados:", request.POST)  # Imprime los datos enviados en el formulario
-
         form = RegistroDeArchivoForm(request.POST)
         if form.is_valid():
-            print("Formulario válido")
-            registro = form.save(commit=False)  # Crea el registro sin guardarlo todavía
-            registro.creado_por = request.user  # Asigna el usuario autenticado al campo creado_por
-            registro.save()  # Guarda el registro con el usuario asignado
-            return redirect('lista_registros')
+            registro = form.save(commit=False)
+            registro.creado_por = request.user  # Asigna el usuario autenticado
+            registro.save()
+            # Agrega un mensaje de éxito
+            messages.success(request, 'Registro de archivo creado exitosamente.')
+            form = RegistroDeArchivoForm()  # Limpia el formulario para un nuevo registro
         else:
-            print("Errores del formulario:", form.errors)  # Muestra los errores de validación
-
+            # Agrega mensajes de error para cada campo inválido
+            for field, errors in form.errors.items():
+                field_name = form.fields[field].label  # Obtiene la etiqueta del campo
+                for error in errors:
+                    messages.error(request, f"{field_name}: {error}")
     else:
-        print("Método GET recibido")
         form = RegistroDeArchivoForm()
         form.fields['codigo_subserie'].queryset = SubserieDocumental.objects.none()
 
@@ -105,6 +105,190 @@ def eliminar_registro(request, pk):
 def lista_completa_registros(request):
     registros = RegistroDeArchivo.objects.all()
     return render(request, 'registro_completo.html', {'registros': registros})
+
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from .models import RegistroDeArchivo
+
+def registros_api(request):
+    registros = RegistroDeArchivo.objects.all()
+
+    # Parámetros básicos
+    draw = request.GET.get("draw", 1)
+    start = int(request.GET.get("start", 0))
+    length = int(request.GET.get("length", 10))
+
+    # Búsqueda por columna
+    # DataTables envía columns[0][data], columns[0][search][value], etc.
+    i = 0
+    while True:
+        col_data = request.GET.get(f'columns[{i}][data]')
+        if col_data is None:
+            break  # no hay más columnas en el request
+        col_search_value = request.GET.get(f'columns[{i}][search][value]', '').strip()
+
+        if col_search_value:
+            if col_data == 'numero_orden':
+                registros = registros.filter(numero_orden__icontains=col_search_value)
+            elif col_data == 'codigo':
+                registros = registros.filter(codigo__icontains=col_search_value)
+            elif col_data == 'codigo_serie':
+                registros = registros.filter(codigo_serie__nombre__icontains=col_search_value)
+            elif col_data == 'codigo_subserie':
+                registros = registros.filter(codigo_subserie__nombre__icontains=col_search_value)
+            elif col_data == 'unidad_documental':
+                registros = registros.filter(unidad_documental__icontains=col_search_value)
+            elif col_data == 'fecha_archivo':
+                # Si es un texto parcial, puedes dejarlo con icontains
+                registros = registros.filter(fecha_archivo__icontains=col_search_value)
+            elif col_data == 'soporte_fisico':
+                # Mapeo opcional si usas "✔", "✖", "True", "False", etc.
+                if col_search_value in ['✔','true','True','1','si','Sí']:
+                    registros = registros.filter(soporte_fisico=True)
+                elif col_search_value in ['✖','false','False','0','no','No']:
+                    registros = registros.filter(soporte_fisico=False)
+            elif col_data == 'soporte_electronico':
+                if col_search_value in ['✔','true','True','1','si','Sí']:
+                    registros = registros.filter(soporte_electronico=True)
+                elif col_search_value in ['✖','false','False','0','no','No']:
+                    registros = registros.filter(soporte_electronico=False)
+            elif col_data == 'creado_por':
+                registros = registros.filter(creado_por__username__icontains=col_search_value)
+            # Añade más elif si tuvieras más campos
+        i += 1
+
+    # Total sin filtros (para recordsTotal)
+    total_registros = RegistroDeArchivo.objects.count()
+
+    # Paginación
+    paginator = Paginator(registros, length)
+    page_number = start // length + 1
+    page = paginator.get_page(page_number)
+
+    # Construye la data de respuesta
+    data = []
+    for registro in page:
+        data.append({
+            "numero_orden": registro.numero_orden,
+            "codigo": registro.codigo,
+            "codigo_serie": registro.codigo_serie.nombre if registro.codigo_serie else "",
+            "codigo_subserie": registro.codigo_subserie.nombre if registro.codigo_subserie else "",
+            "unidad_documental": registro.unidad_documental,
+            "fecha_archivo": registro.fecha_archivo,
+            "soporte_fisico": registro.soporte_fisico,
+            "soporte_electronico": registro.soporte_electronico,
+            "creado_por": registro.creado_por.username if registro.creado_por else "N/A",
+            "id": registro.id,  # importante para los enlaces Editar/Eliminar
+        })
+
+    response = {
+        "draw": int(draw),
+        "recordsTotal": total_registros,
+        "recordsFiltered": registros.count(),
+        "data": data,
+    }
+    return JsonResponse(response)
+
+
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from .models import RegistroDeArchivo
+
+def registros_api_completo(request):
+    registros = RegistroDeArchivo.objects.all()
+
+    # Paginación y parámetros de DataTables
+    draw = int(request.GET.get('draw', 1))
+    start = int(request.GET.get('start', 0))
+    length = int(request.GET.get('length', 10))
+
+    # Filtrar por columnas
+    i = 0
+    while True:
+        col_data = request.GET.get(f'columns[{i}][data]')
+        if col_data is None:
+            break
+        search_value = request.GET.get(f'columns[{i}][search][value]', '').strip()
+        if search_value:
+            if col_data == 'numero_orden':
+                registros = registros.filter(numero_orden__icontains=search_value)
+            elif col_data == 'codigo':
+                registros = registros.filter(codigo__icontains=search_value)
+            elif col_data == 'codigo_serie':
+                registros = registros.filter(codigo_serie__nombre__icontains=search_value)
+            elif col_data == 'codigo_subserie':
+                registros = registros.filter(codigo_subserie__nombre__icontains=search_value)
+            elif col_data == 'unidad_documental':
+                registros = registros.filter(unidad_documental__icontains=search_value)
+            elif col_data == 'fecha_archivo':
+                registros = registros.filter(fecha_archivo__icontains=search_value)
+            elif col_data == 'fecha_inicial':
+                registros = registros.filter(fecha_inicial__icontains=search_value)
+            elif col_data == 'fecha_final':
+                registros = registros.filter(fecha_final__icontains=search_value)
+            elif col_data == 'soporte_fisico':
+                registros = registros.filter(soporte_fisico=search_value.lower() in ['true', '1', '✔'])
+            elif col_data == 'soporte_electronico':
+                registros = registros.filter(soporte_electronico=search_value.lower() in ['true', '1', '✔'])
+            elif col_data == 'caja':
+                registros = registros.filter(caja__icontains=search_value)
+            elif col_data == 'carpeta':
+                registros = registros.filter(carpeta__icontains=search_value)
+            elif col_data == 'ubicacion':
+                registros = registros.filter(ubicacion__icontains=search_value)
+            # Agrega más filtros si es necesario
+        i += 1
+
+    # Paginación
+    paginator = Paginator(registros, length)
+    page_number = start // length + 1
+    page = paginator.get_page(page_number)
+
+    # Preparar datos para DataTables
+    data = []
+    for registro in page:
+        data.append({
+            "numero_orden": registro.numero_orden,
+            "codigo": registro.codigo,
+            "codigo_serie": registro.codigo_serie.nombre if registro.codigo_serie else "",
+            "codigo_subserie": registro.codigo_subserie.nombre if registro.codigo_subserie else "",
+            "unidad_documental": registro.unidad_documental,
+            "fecha_archivo": registro.fecha_archivo,
+            "fecha_inicial": registro.fecha_inicial,
+            "fecha_final": registro.fecha_final,
+            "soporte_fisico": registro.soporte_fisico,
+            "soporte_electronico": registro.soporte_electronico,
+            "caja": registro.caja,
+            "carpeta": registro.carpeta,
+            "tomo_legajo_libro": registro.tomo_legajo_libro,
+            "numero_folios": registro.numero_folios,
+            "tipo": registro.tipo,
+            "cantidad": registro.cantidad,
+            "ubicacion": registro.ubicacion,
+            "cantidad_documentos_electronicos": registro.cantidad_documentos_electronicos,
+            "tamano_documentos_electronicos": registro.tamano_documentos_electronicos,
+            "notas": registro.notas,
+            "creado_por": registro.creado_por.username if registro.creado_por else "",
+            "fecha_creacion": registro.fecha_creacion,
+        })
+
+    # Respuesta JSON
+    response = {
+        "draw": draw,
+        "recordsTotal": RegistroDeArchivo.objects.count(),
+        "recordsFiltered": registros.count(),
+        "data": data,
+    }
+    return JsonResponse(response)
+
+
+
 
 
 
@@ -246,52 +430,104 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import FichaPaciente
 
+from django.core.paginator import Paginator
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import FichaPaciente
+
+
 class ListaFichasAPIView(APIView):
     def get(self, request):
-        campo_busqueda = request.GET.get('campo_busqueda', None)
-        valor_busqueda = request.GET.get('valor_busqueda', None)
+        # Parámetros enviados desde el frontend
         fecha_inicio = request.GET.get('fecha_inicio', None)
         fecha_fin = request.GET.get('fecha_fin', None)
+        filtro_identificacion = request.GET.get('filtro_identificacion', None)
+        filtro_historia = request.GET.get('filtro_historia', None)
+        filtro_nombre = request.GET.get('filtro_nombre', None)
+        filtro_similar = request.GET.get('filtro_similar', None)
         start = int(request.GET.get('start', 0))
         length = int(request.GET.get('length', 250))
 
+        # Ordenamiento
+        order_column = int(request.GET.get('order[0][column]', 0))
+        order_dir = request.GET.get('order[0][dir]', 'asc')
+
+        # Mapear columnas de DataTables a campos del modelo
+        column_mapping = {
+            0: 'consecutivo',
+            1: 'primer_nombre',  # Ordenar por primer nombre
+            2: 'tipo_identificacion',
+            3: 'num_identificacion',
+            4: 'sexo',
+            5: 'activo',  # Ordenar por estado
+            6: 'fecha_nacimiento',
+            7: 'Numero_historia_clinica',
+        }
+
+        # Determinar el campo para ordenar
+        order_field = column_mapping.get(order_column, 'consecutivo')  # Campo predeterminado: consecutivo
+        if order_dir == 'desc':
+            order_field = f"-{order_field}"  # Prefijo "-" para orden descendente
+
+        # Base queryset
         queryset = FichaPaciente.objects.all()
 
-        # Filtrar por campo seleccionado
-        if campo_busqueda and valor_busqueda:
-            if campo_busqueda in ['consecutivo', 'num_identificacion', 'numero_historia_clinica']:
-                queryset = queryset.filter(**{campo_busqueda: valor_busqueda})
-            elif campo_busqueda == 'estado':
-                queryset = queryset.filter(activo=(valor_busqueda.lower() == 'activo'))
-            else:
-                queryset = queryset.filter(**{f"{campo_busqueda}__icontains": valor_busqueda})
-
-        # Filtrar por rango de fechas
+        # Filtros avanzados
         if fecha_inicio and fecha_fin:
             queryset = queryset.filter(fecha_nacimiento__range=[fecha_inicio, fecha_fin])
+        if filtro_identificacion:
+            queryset = queryset.filter(num_identificacion__icontains=filtro_identificacion)
+        if filtro_historia:
+            queryset = queryset.filter(Numero_historia_clinica__icontains=filtro_historia)
+        if filtro_nombre:
+            queryset = queryset.filter(
+                primer_nombre__icontains=filtro_nombre
+            ) | queryset.filter(
+                primer_apellido__icontains=filtro_nombre
+            )
+        if filtro_similar:
+            queryset = queryset.filter(
+                primer_nombre__icontains=filtro_similar
+            ) | queryset.filter(
+                segundo_nombre__icontains=filtro_similar
+            ) | queryset.filter(
+                primer_apellido__icontains=filtro_similar
+            ) | queryset.filter(
+                segundo_apellido__icontains=filtro_similar
+            )
+
+        # Aplicar ordenamiento dinámico
+        queryset = queryset.order_by(order_field)
 
         # Paginación
+        total_records = queryset.count()
         paginator = Paginator(queryset, length)
         fichas = paginator.get_page(start // length + 1).object_list
 
         # Formato JSON para DataTables
-        data = [{
-            "consecutivo": ficha.consecutivo,
-            "nombre_completo": f"{ficha.primer_nombre} {ficha.segundo_nombre} {ficha.primer_apellido} {ficha.segundo_apellido}",
-            "tipo_identificacion": ficha.tipo_identificacion,
-            "num_identificacion": ficha.num_identificacion,
-            "sexo": ficha.sexo,
-            "estado": ficha.activo,
-            "fecha_nacimiento": ficha.fecha_nacimiento.strftime("%Y-%m-%d"),
-            "numero_historia_clinica": ficha.Numero_historia_clinica
-        } for ficha in fichas]
+        data = [
+            {
+                "consecutivo": ficha.consecutivo,
+                "nombre_completo": f"{ficha.primer_nombre} {ficha.segundo_nombre or ''} {ficha.primer_apellido} {ficha.segundo_apellido}",
+                "tipo_identificacion": ficha.tipo_identificacion,
+                "num_identificacion": ficha.num_identificacion,
+                "sexo": ficha.sexo,
+                "estado": ficha.activo,
+                "fecha_nacimiento": ficha.fecha_nacimiento.strftime("%Y-%m-%d"),
+                "numero_historia_clinica": ficha.Numero_historia_clinica,
+            }
+            for ficha in fichas
+        ]
 
-        return Response({
-            "draw": request.GET.get('draw', 1),
-            "recordsTotal": queryset.count(),
-            "recordsFiltered": queryset.count(),
-            "data": data
-        })
+        return Response(
+            {
+                "draw": request.GET.get("draw", 1),
+                "recordsTotal": total_records,
+                "recordsFiltered": total_records,
+                "data": data,
+            }
+        )
+
 
 
 
@@ -539,6 +775,126 @@ def export_fuid_to_excel(request, pk):
 
     wb.save(response)
     return response
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db.models import Count, Avg, Q
+from .models import FichaPaciente, RegistroDeArchivo, FUID
+from datetime import date, datetime
+
+def calcular_edad(fecha_nacimiento):
+    """
+    Calcula la edad actual basada en la fecha de nacimiento.
+    """
+    if fecha_nacimiento:
+        hoy = date.today()
+        return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+    return None
+
+def estadisticas_pacientes(request):
+    """
+    API para devolver estadísticas de pacientes considerando varios atributos.
+    """
+    usuario = request.GET.get('usuario')
+    pacientes = FichaPaciente.objects.all()
+
+    if usuario:
+        pacientes = pacientes.filter(creado_por__username=usuario)
+
+    # Calcular edades
+    edades = [calcular_edad(p.fecha_nacimiento) for p in pacientes if p.fecha_nacimiento]
+
+    # Clasificar por grupos de edad
+    grupos_edad = {
+        "0-18": sum(1 for e in edades if e <= 18),
+        "19-35": sum(1 for e in edades if 19 <= e <= 35),
+        "36-60": sum(1 for e in edades if 36 <= e <= 60),
+        "60+": sum(1 for e in edades if e > 60)
+    }
+
+    datos = {
+        'total_pacientes': pacientes.count(),
+        'por_genero': list(pacientes.values('sexo').annotate(cantidad=Count('sexo'))),
+        'por_tipo_identificacion': list(pacientes.values('tipo_identificacion').annotate(cantidad=Count('tipo_identificacion'))),
+        'activos': pacientes.filter(activo=True).count(),
+        'promedio_edad': round(sum(edades) / len(edades), 2) if edades else None,
+        'grupos_edad': grupos_edad
+    }
+
+    return JsonResponse(datos, safe=False)
+
+
+def estadisticas_registros(request):
+    """
+    API para devolver estadísticas de registros, organizados por series documentales y tipos.
+    """
+    try:
+        fecha_inicio = request.GET.get('fecha_inicio')
+        fecha_fin = request.GET.get('fecha_fin')
+        registros = RegistroDeArchivo.objects.all()
+
+        # Filtrar por rango de fechas si se proporcionan
+        if fecha_inicio and fecha_fin:
+            fecha_inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+            fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
+            registros = registros.filter(fecha_archivo__range=(fecha_inicio, fecha_fin))
+
+        # Generar estadísticas
+        datos = {
+            'total_registros': registros.count(),
+            'por_serie': list(
+                registros.values('codigo_serie__nombre').annotate(cantidad=Count('id'))
+            ),
+            'por_soporte': list(
+                registros.values('soporte_fisico', 'soporte_electronico').annotate(cantidad=Count('id'))
+            ),
+            'por_tipo': list(
+                registros.values('tipo').annotate(cantidad=Count('id'))
+            ),
+        }
+
+        return JsonResponse(datos, safe=False)
+    except Exception as e:
+        print("Error en estadisticas_registros:", e)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+def estadisticas_fuids(request):
+    """
+    API para devolver estadísticas de FUIDs, organizados por oficinas productoras.
+    """
+    usuario = request.GET.get('usuario')
+    fuids = FUID.objects.all()
+
+    if usuario:
+        fuids = fuids.filter(creado_por__username=usuario)
+
+    datos = {
+        'total_fuids': fuids.count(),
+        'por_oficina': list(fuids.values('oficina_productora__nombre').annotate(cantidad=Count('id'))),
+        'por_objeto': list(fuids.values('objeto__nombre').annotate(cantidad=Count('id'))),
+        'por_entidad': list(fuids.values('entidad_productora__nombre').annotate(cantidad=Count('id'))),
+    }
+
+    return JsonResponse(datos, safe=False)
+
+
+def pagina_estadisticas(request):
+    """
+    Página principal para mostrar gráficos de las estadísticas.
+    """
+    return render(request, 'pagina_estadisticas.html')
+
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+
+def obtener_usuarios(request):
+    usuarios = User.objects.values('username')
+    return JsonResponse(list(usuarios), safe=False)
+
+
 
 
 

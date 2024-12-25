@@ -9,6 +9,12 @@ from .views import lista_fichas_paciente
 from .views import EditarFichaPaciente, detalle_ficha_paciente
 from .views import ListaFichasAPIView
 from .views import export_fuid_to_excel
+from .views import estadisticas_fuids, estadisticas_registros, estadisticas_pacientes,  pagina_estadisticas, obtener_usuarios
+from django.views.generic import TemplateView
+from .views import registros_api
+
+
+
 
 
 
@@ -41,6 +47,23 @@ urlpatterns = [
     path('detalle-ficha/<int:consecutivo>/', detalle_ficha_paciente, name='detalle_ficha'),
     path('api/lista-fichas/', ListaFichasAPIView.as_view(), name='api_lista_fichas'),
     path('fuid/<int:pk>/export-excel/', export_fuid_to_excel, name='export_fuid_to_excel'),
+      # Otras rutas de tu app...
+    path('estadisticas/fuids/', estadisticas_fuids, name='estadisticas_fuids'),
+    path('estadisticas/registros/', estadisticas_registros, name='estadisticas_registros'),
+    path('estadisticas/pacientes/', estadisticas_pacientes, name='estadisticas_pacientes'),
+    path('estadisticas/', pagina_estadisticas, name='pagina_estadisticas'),
+    path('api/usuarios/', obtener_usuarios, name='obtener_usuarios'),
+    # path('adminlte/', TemplateView.as_view(template_name="admin-lte/index.html"), name="adminlte_index"),
+    path('', TemplateView.as_view(template_name="adminlte/base.html"), name="home"),
+    path('api/registros/', registros_api, name='registros_api'),
+    path('api/registros_api_completo/', views.registros_api_completo, name='registros_api_completo'),
+
+
+
+
+
+
+    
 
 
 

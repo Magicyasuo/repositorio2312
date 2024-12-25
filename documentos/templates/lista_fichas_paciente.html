@@ -8,107 +8,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
-    <style>
-        .table td, .table th {
-            font-size: 0.85rem; 
-            white-space: nowrap; 
-            overflow: hidden;
-            text-overflow: ellipsis; 
-        }
-        body {
-            background: linear-gradient(135deg, #ffffff, #f0f0f0);
-            font-family: Arial, sans-serif;
-        }
-        .navbar {
-            background-color: #003366 !important;
-        }
-        .navbar-brand, .navbar-nav .nav-link, .navbar-text a {
-            color: #ffffff !important;
-            transition: color 0.2s ease;
-        }
-        .navbar-nav .nav-link:hover {
-            color: #cce5ff !important;
-        }
-        h1 {
-            color: #003366;
-            font-weight: 700;
-        }
-        .btn-primary {
-            background-color: #0069d9 !important;
-            border: none;
-            transition: transform 0.2s ease;
-        }
-        .btn-primary:hover {
-            background-color: #005bb5 !important;
-            transform: scale(1.05);
-        }
-        .table {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .table-striped tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        .btn-warning {
-            background-color: #ffc107 !important;
-            border: none;
-            transition: transform 0.2s ease;
-        }
-        .btn-warning:hover {
-            background-color: #e0a800 !important;
-            transform: scale(1.05);
-        }
-        .btn-info {
-            background-color: #17a2b8 !important;
-            border: none;
-            transition: transform 0.2s ease;
-        }
-        .btn-info:hover {
-            background-color: #138496 !important;
-            transform: scale(1.05);
-        }
-
-        .col-nombre-completo {
-            width: 35%;
-        }
-
-        .estado-activo {
-            background-color: #d4edda !important;
-            color: #155724 !important;
-            font-weight: bold;
-            text-align: center;
-        }
-        .estado-pasivo {
-            background-color: #cce5ff !important;
-            color: #004085 !important;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        #mainContainer {
-            opacity: 0;
-        }
-        nav.navbar {
-            opacity: 0;
-        }
+    <style>.dataTables_filter {
+        display: none;
+    }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-light bg-light mb-4 animate__animated animate__fadeInDown">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="/">
-            <i class="bi bi-archive-fill me-2" style="font-size:1.5rem;"></i> Gestión de Pacientes
-        </a>
-        <span class="navbar-text">
-            {% if request.user.is_authenticated %}
-                Bienvenido, {{ request.user.username }} | <a href="{% url 'logout' %}">Cerrar sesión</a>
-            {% else %}
-                <a href="{% url 'login' %}">Iniciar sesión</a>
-            {% endif %}
-        </span>
-    </div>
-</nav>
+<main>
+    <nav class="navbar navbar-light bg-light mb-4 animate__animated animate__fadeInDown animate__delay-1s">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="bi bi-archive-fill text-primary me-2" style="font-size:1.5rem;"></i>
+                Hospital del Sarare
+            </a>
+            <span class="navbar-text">
+                {% if request.user.is_authenticated %}
+                    Bienvenido, {{ request.user.username }} | <a href="{% url 'logout' %}">Cerrar sesión</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Iniciar sesión</a>
+                {% endif %}
+            </span>
+        </div>
+    </nav>
+
 
 <div class="container animate__animated animate__fadeInUp" id="mainContainer">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -142,6 +67,7 @@
     <div class="row mb-3">
         <div class="col-md-3">
             <button id="filtrar" class="btn btn-primary">Filtrar</button>
+            <button id="limpiar" class="btn btn-secondary">Limpiar Filtros</button>
         </div>
     </div>
     
@@ -201,81 +127,110 @@
             {% endfor %}
         </tbody>
     </table>
+    
 </div>
+</main>
+<footer>
+    <p>&copy; {{ current_year }} Hospital del Sarare - Central de Archivos del Sarare.</p>
+</footer>
+
+
 
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+<script src="https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"></script>
 <script>
-    $(document).ready(function() {
-        var table = $('#fichasTable').DataTable({
-            pageLength: 250,
-            lengthMenu: [10, 50, 100, 250],
-            processing: true,
-            serverSide: true,
-            ajax: {
-                url: "{% url 'api_lista_fichas' %}",
-                type: "GET",
-                data: function(d) {
-                    d.fecha_inicio = $('#fecha_inicio').val();
-                    d.fecha_fin = $('#fecha_fin').val();
-                    d.filtro_identificacion = $('#filtro_identificacion').val();
-                    d.filtro_historia = $('#filtro_historia').val();
-                    d.filtro_nombre = $('#filtro_nombre').val();
-                    d.filtro_similar = $('#filtro_similar').val();
+$(document).ready(function() {
+    var table = $('#fichasTable').DataTable({
+        pageLength: 250,
+        lengthMenu: [10, 50, 100, 250],
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{% url 'api_lista_fichas' %}",
+            type: "GET",
+            data: function(d) {
+                // Agregar filtros adicionales
+                d.fecha_inicio = $('#fecha_inicio').val();
+                d.fecha_fin = $('#fecha_fin').val();
+                d.filtro_identificacion = $('#filtro_identificacion').val();
+                d.filtro_historia = $('#filtro_historia').val();
+                d.filtro_nombre = $('#filtro_nombre').val();
+                d.filtro_similar = $('#filtro_similar').val();
+            }
+        },
+        language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json"
+        },
+        columns: [
+            { data: "consecutivo" },
+            { data: "nombre_completo" },
+            { data: "tipo_identificacion" },
+            { data: "num_identificacion" },
+            { data: "sexo" },
+            {
+                data: "estado",
+                render: function(data) {
+                    return data ? '<span class="estado-activo">Activo</span>' : '<span class="estado-pasivo">Pasivo</span>';
                 }
             },
-            columns: [
-                { data: "consecutivo" },
-                { data: "nombre_completo" },
-                { data: "tipo_identificacion" },
-                { data: "num_identificacion" },
-                { data: "sexo" },
-                { data: "estado", render: function(data) {
-                    return data ? '<span class="estado-activo">Activo</span>' : '<span class="estado-pasivo">Pasivo</span>';
-                }},
-                { data: "fecha_nacimiento" },
-                { data: "numero_historia_clinica" },
-                { data: null, render: function(data) {
-                    return '<a href="/editar-ficha/'+data.consecutivo+'" class="btn btn-warning btn-sm">Editar</a> ' +
-                           '<a href="/detalle-ficha/'+data.consecutivo+'" class="btn btn-info btn-sm">Ver</a>';
-                }}
-            ],
-            initComplete: function() {
-                // Buscadores por columna en el footer
-                this.api().columns().every(function() {
-                    var column = this;
-                    $('tfoot th').eq(column.index()).html('<input type="text" class="form-control form-control-sm" placeholder="Buscar...">');
-                });
-                var that = this;
-                this.api().columns().every(function() {
-                    var column = this;
-                    $('tfoot th input').eq(column.index()).on('keyup change', function() {
-                        column.search($(this).val()).draw();
-                    });
-                });
-
-                // Filtro avanzado por rangos y campos
-                $('#filtrar').on('click', function() {
-                    table.ajax.reload();
-                });
+            { data: "fecha_nacimiento" },
+            { data: "numero_historia_clinica" },
+            {
+                data: null,
+                orderable: false,
+                searchable: false,
+                render: function(data) {
+                    return `
+                        <a href="/editar-ficha/${data.consecutivo}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-pencil-square"></i> Editar
+                        </a>
+                        <a href="/detalle-ficha/${data.consecutivo}" class="btn btn-info btn-sm">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                    `;
+                }
             }
-        });
-
-        $('#fichasTable').on('draw.dt', function() {
-            anime({
-                targets: '#fichasTable tbody tr',
-                translateX: [-10, 0],
-                opacity: [0, 1],
-                easing: 'easeOutExpo',
-                duration: 500,
-                delay: anime.stagger(50)
+        ],
+        initComplete: function() {
+            // Manejo del botón "Filtrar"
+            $('#filtrar').on('click', function() {
+                table.ajax.reload();
             });
+        }
+    });
+            // Botón "Limpiar Filtros"
+    $('#limpiar').on('click', function() {
+        // Restablecer los valores de los filtros
+        $('#fecha_inicio').val('');
+        $('#fecha_fin').val('');
+        $('#filtro_identificacion').val('');
+        $('#filtro_historia').val('');
+        $('#filtro_nombre').val('');
+        $('#filtro_similar').val('');
+        
+        // Recargar la tabla
+        table.ajax.reload();
+    });
+
+    // Animación para las filas de la tabla al redibujar
+    $('#fichasTable').on('draw.dt', function() {
+        anime({
+            targets: '#fichasTable tbody tr',
+            translateX: [-10, 0],
+            opacity: [0, 1],
+            easing: 'easeOutExpo',
+            duration: 500,
+            delay: anime.stagger(50)
         });
     });
+});
+
 </script>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
