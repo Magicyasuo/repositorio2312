@@ -1,28 +1,39 @@
-from django.db import IntegrityError
-from django.shortcuts import render, redirect
-from .models import RegistroDeArchivo
-from .forms import RegistroDeArchivoForm
-from django.http import JsonResponse
-from .models import SubserieDocumental
-from .models import SerieDocumental
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
-from django.views.generic.edit import CreateView, UpdateView
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import FUID, RegistroDeArchivo
-from django.utils.timezone import now, timedelta
-from .forms import FUIDForm
-from django.http import HttpResponse
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font
-from .models import FUID, RegistroDeArchivo
-from django.contrib import messages
+# Importaciones estándar de Python
+from datetime import date, datetime  # Manejo de fechas y horas
 
+# Importaciones de Django
+from django.contrib import messages  # Envío de mensajes al contexto (ejemplo: mensajes de éxito o error)
+from django.contrib.auth.decorators import login_required  # Decorador para restringir acceso a usuarios autenticados
+from django.contrib.auth.mixins import LoginRequiredMixin  # Mixin para vistas basadas en clases que requieren autenticación
+from django.contrib.auth.models import User  # Modelo de usuarios de Django
+from django.core.paginator import Paginator  # Paginación de listas de objetos
+from django.db import IntegrityError  # Manejo de errores de integridad en la base de datos
+from django.db.models import Q, Count, Avg  # Operadores para consultas avanzadas a la base de datos
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse  # Respuestas HTTP y JSON
+from django.shortcuts import render, redirect, get_object_or_404  # Métodos para renderizar vistas y manejar redirecciones
+from django.urls import reverse_lazy  # Generación de URLs reversas para redirección
+from django.utils.timezone import now, timedelta  # Fechas y tiempos con soporte de zona horaria
+from django.views.generic.edit import CreateView, UpdateView  # Vistas genéricas para creación y edición de objetos
+# Librerías de terceros
+import openpyxl  # Librería para trabajar con archivos Excel
+from openpyxl.utils import get_column_letter  # Utilidad para obtener letras de columnas en Excel
+from openpyxl.styles import Alignment, Border, Side, PatternFill, Font  # Estilos y formato para celdas en Excel
+from openpyxl.drawing.image import Image  # Insertar imágenes en hojas de cálculo Excel
 
-# from .models import SerieDocumental
+# Framework Django Rest Framework
+from rest_framework.response import Response  # Respuestas de APIs
+from rest_framework.views import APIView  # Clase base para construir APIs
 
-# print(SerieDocumental)
+# Importaciones específicas del proyecto
+from .forms import RegistroDeArchivoForm, FUIDForm, FichaPacienteForm  # Formularios personalizados
+from .models import (  # Modelos de la base de datos
+    RegistroDeArchivo,
+    SubserieDocumental,
+    SerieDocumental,
+    FUID,
+    FichaPaciente
+)
+
 
 @login_required
 def cargar_series(request):
@@ -65,7 +76,7 @@ def crear_registro(request):
 
     return render(request, 'registro_form.html', {'form': form})
 
-
+@login_required
 def editar_registro(request, pk):
     registro = RegistroDeArchivo.objects.get(id=pk)
     if request.method == 'POST':
@@ -106,16 +117,8 @@ def lista_completa_registros(request):
     registros = RegistroDeArchivo.objects.all()
     return render(request, 'registro_completo.html', {'registros': registros})
 
-from django.core.paginator import Paginator
-from django.http import JsonResponse
 
-from django.core.paginator import Paginator
-from django.http import JsonResponse
-
-from django.core.paginator import Paginator
-from django.http import JsonResponse
-from .models import RegistroDeArchivo
-
+@login_required
 def registros_api(request):
     registros = RegistroDeArchivo.objects.all()
 
@@ -195,11 +198,7 @@ def registros_api(request):
     }
     return JsonResponse(response)
 
-
-from django.core.paginator import Paginator
-from django.http import JsonResponse
-from .models import RegistroDeArchivo
-
+@login_required
 def registros_api_completo(request):
     registros = RegistroDeArchivo.objects.all()
 
@@ -293,6 +292,7 @@ def registros_api_completo(request):
 
 
 # Vista para crear un FUID
+
 class FUIDCreateView(LoginRequiredMixin, CreateView):
     model = FUID
     form_class = FUIDForm
@@ -319,7 +319,7 @@ class FUIDCreateView(LoginRequiredMixin, CreateView):
 
         form.fields['registros'].queryset = registros
         return form
-
+    @login_required
     def form_valid(self, form):
         # Asignar automáticamente el usuario que crea el FUID
         form.instance.creado_por = self.request.user
@@ -333,7 +333,6 @@ class FUIDCreateView(LoginRequiredMixin, CreateView):
 
 
 
-from .forms import FUIDForm
 
 class FUIDUpdateView(UpdateView):
     model = FUID
@@ -365,13 +364,11 @@ def detalle_fuid(request, pk):
     registros = fuid.registros.all()
     return render(request, 'fuid_complete_list.html', {'fuid': fuid, 'registros': registros})
 
-from django.shortcuts import render
-
+@login_required
 def welcome_view(request):
     return render(request, 'welcome.html')
 
-from .forms import FichaPacienteForm
-
+@login_required
 def crear_ficha_paciente(request):
     if request.method == 'POST':
         form = FichaPacienteForm(request.POST)
@@ -395,10 +392,7 @@ def crear_ficha_paciente(request):
     return render(request, 'ficha_paciente_form.html', {'form': form})
 
 
-
-from django.shortcuts import render
-from .models import FichaPaciente
-
+@login_required
 def lista_fichas_paciente(request):
     fichas = FichaPaciente.objects.all()
     return render(request, 'lista_fichas_paciente.html', {'fichas': fichas})
@@ -412,28 +406,12 @@ class EditarFichaPaciente(UpdateView):
 
 
 
-from django.shortcuts import get_object_or_404
-
+@login_required
 def detalle_ficha_paciente(request, consecutivo):
     ficha = get_object_or_404(FichaPaciente, consecutivo=consecutivo)
     return render(request, 'detalle_ficha_paciente.html', {'ficha': ficha})
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.core.paginator import Paginator
-from .models import FichaPaciente
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db.models import Q
-from django.core.paginator import Paginator
-from .models import FichaPaciente
-
-from django.core.paginator import Paginator
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from .models import FichaPaciente
 
 
 class ListaFichasAPIView(APIView):
@@ -528,71 +506,6 @@ class ListaFichasAPIView(APIView):
             }
         )
 
-
-
-
-
-
-#............ exportaciones..............................
-
-
-
-
-import openpyxl
-from django.http import HttpResponse
-from .models import FUID
-
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment
-
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment
-
-# muchas librerias aaaaaaaaaaa
-
-
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
-
-from django.http import HttpResponse
-import openpyxl
-from openpyxl.utils import get_column_letter
-from openpyxl.styles import Alignment, Border, Side, PatternFill
-from openpyxl.drawing.image import Image
 
 def export_fuid_to_excel(request, pk):
     # Obtener el FUID específico
@@ -776,12 +689,8 @@ def export_fuid_to_excel(request, pk):
     wb.save(response)
     return response
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db.models import Count, Avg, Q
-from .models import FichaPaciente, RegistroDeArchivo, FUID
-from datetime import date, datetime
 
+@login_required
 def calcular_edad(fecha_nacimiento):
     """
     Calcula la edad actual basada en la fecha de nacimiento.
@@ -790,7 +699,7 @@ def calcular_edad(fecha_nacimiento):
         hoy = date.today()
         return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
     return None
-
+@login_required
 def estadisticas_pacientes(request):
     """
     API para devolver estadísticas de pacientes considerando varios atributos.
@@ -823,7 +732,7 @@ def estadisticas_pacientes(request):
 
     return JsonResponse(datos, safe=False)
 
-
+@login_required
 def estadisticas_registros(request):
     """
     API para devolver estadísticas de registros, organizados por series documentales y tipos.
@@ -860,7 +769,7 @@ def estadisticas_registros(request):
 
 
 
-
+@login_required
 def estadisticas_fuids(request):
     """
     API para devolver estadísticas de FUIDs, organizados por oficinas productoras.
@@ -880,171 +789,42 @@ def estadisticas_fuids(request):
 
     return JsonResponse(datos, safe=False)
 
-
+@login_required
 def pagina_estadisticas(request):
     """
     Página principal para mostrar gráficos de las estadísticas.
     """
     return render(request, 'pagina_estadisticas.html')
 
-from django.contrib.auth.models import User
-from django.http import JsonResponse
 
+@login_required
 def obtener_usuarios(request):
     usuarios = User.objects.values('username')
     return JsonResponse(list(usuarios), safe=False)
 
+# mixins.py
+from django.http import HttpResponseForbidden
+
+class OficinaFilterMixin:
+    """
+    Filtra los objetos para que el usuario solo vea y manipule
+    aquellos creados por su oficina. También bloquea la edición
+    de objetos de otras oficinas.
+    """
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Si deseas que el superusuario vea todo, déjalo pasar:
+        if self.request.user.is_superuser:
+            return qs
+        # Caso contrario, filtra por la oficina del perfil
+        return qs.filter(oficina_productora=self.request.user.perfil.oficina)
+
+    def dispatch(self, request, *args, **kwargs):
+        # Bloqueo adicional para edición/eliminación
+        if hasattr(self, 'get_object'):
+            obj = self.get_object()
+            if (not request.user.is_superuser) and (obj.oficina_productora != request.user.perfil.oficina):
+                return HttpResponseForbidden("No tienes permiso sobre este recurso.")
+        return super().dispatch(request, *args, **kwargs)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# from django.http import HttpResponse
-# from openpyxl import Workbook
-# from openpyxl.styles import Alignment, Font
-# from openpyxl.utils import get_column_letter
-# from openpyxl.cell.cell import MergedCell
-# from .models import FUID, RegistroDeArchivo
-
-
-# from openpyxl import Workbook
-# from openpyxl.styles import Alignment, Font
-# from django.http import HttpResponse
-# from .models import FUID
-
-# def export_fuids_to_excel(request):
-#     # Crear un libro de Excel y hoja activa
-#     wb = Workbook()
-#     ws = wb.active
-#     ws.title = "Exportación FUIDs"
-
-#     # Definir los encabezados principales
-#     headers = ["ENTIDAD PRODUCTORA", "UNIDAD ADMINISTRATIVA", "OFICINA PRODUCTORA", "OBJETO"]
-#     starting_row = 8  # Comenzamos desde la fila A8
-#     font_bold = Font(bold=True)
-#     alignment_center = Alignment(horizontal="center", vertical="center")
-
-#     # Escribir encabezados en la columna A (A8, A9, A10, A11)
-#     for i, header in enumerate(headers, start=starting_row):
-#         cell = ws.cell(row=i, column=1, value=header)
-#         cell.font = font_bold
-#         cell.alignment = alignment_center
-
-#     # Obtener los FUIDs de la base de datos
-#     fuids = FUID.objects.all()
-
-#     # Agregar los datos de los FUIDs en columnas horizontales
-#     for col_index, fuid in enumerate(fuids, start=2):  # Columnas empiezan en B
-#         ws.cell(row=8, column=col_index, value=fuid.entidad_productora.nombre if fuid.entidad_productora else "N/A")
-#         ws.cell(row=9, column=col_index, value=fuid.unidad_administrativa.nombre if fuid.unidad_administrativa else "N/A")
-#         ws.cell(row=10, column=col_index, value=fuid.oficina_productora.nombre if fuid.oficina_productora else "N/A")
-#         ws.cell(row=11, column=col_index, value=fuid.objeto.nombre if fuid.objeto else "N/A")
-
-#     # Ajustar ancho de columnas automáticamente
-#     for col in ws.columns:
-#         max_length = 0
-#         column = col[0].column_letter  # Obtener la letra de la columna
-#         for cell in col:
-#             try:
-#                 if cell.value:
-#                     max_length = max(max_length, len(str(cell.value)))
-#             except Exception:
-#                 pass
-#         ws.column_dimensions[column].width = max_length + 2
-
-#     # Preparar la respuesta HTTP para descargar el archivo Excel
-#     response = HttpResponse(
-#         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-#     )
-#     response["Content-Disposition"] = 'attachment; filename="fuids_export.xlsx"'
-#     wb.save(response)
-
-#     return response
-
-# # def exportar_fuid_excel(request, fuid_id):
-# #     fuid = FUID.objects.get(id=fuid_id)
-# #     registros = fuid.registros.all()
-
-# #     wb = Workbook()
-# #     ws = wb.active
-# #     ws.title = f"FUID {fuid.id}"
-
-# #     ws.merge_cells('A1:G1')
-# #     ws['A1'] = "FORMATO ÚNICO DE INVENTARIO DOCUMENTAL"
-# #     ws['A1'].font = Font(size=14, bold=True)
-# #     ws['A1'].alignment = Alignment(horizontal="center", vertical="center")
-
-# #     ws.append([
-# #         "Elaborado Por:", 
-# #         fuid.creado_por.username if fuid.creado_por else "N/A", "",
-# #         "Entregado Por:", "", 
-# #         "Recibido Por:", ""
-# #     ])
-# #     ws.append([
-# #         "Nombres y Apellidos:", 
-# #         fuid.creado_por.get_full_name() if fuid.creado_por else "N/A", "",
-# #         "Nombres y Apellidos:", "", 
-# #         "Nombres y Apellidos:", ""
-# #     ])
-# #     ws.append([
-# #         "Cargo:", "Responsable de Archivo", "", 
-# #         "Cargo:", "", 
-# #         "Cargo:", ""
-# #     ])
-# #     ws.append([
-# #         "Lugar:", "Hospital del Sarare", "Fecha:", fuid.fecha_creacion.strftime("%Y-%m-%d"),
-# #         "Lugar:", "Hospital del Sarare", "Fecha:", fuid.fecha_creacion.strftime("%Y-%m-%d")
-# #     ])
-
-# #     ws.append([])  # Espacio en blanco
-
-# #     encabezados = [
-# #         "Número de Orden", "Código Serie", "Código Subserie",
-# #         "Unidad Documental", "Fecha Inicial", "Fecha Final",
-# #         "Ubicación", "Notas"
-# #     ]
-# #     ws.append(encabezados)
-# #     for col_index in range(1, len(encabezados) + 1):
-# #         ws.cell(row=6, column=col_index).font = Font(bold=True)
-
-# #     for registro in registros:
-# #         ws.append([
-# #             registro.numero_orden,
-# #             registro.codigo_serie.nombre if registro.codigo_serie else "N/A",
-# #             registro.codigo_subserie.nombre if registro.codigo_subserie else "N/A",
-# #             registro.unidad_documental,
-# #             registro.fecha_inicial.strftime("%Y-%m-%d") if registro.fecha_inicial else "N/A",
-# #             registro.fecha_final.strftime("%Y-%m-%d") if registro.fecha_final else "N/A",
-# #             registro.ubicacion,
-# #             registro.notas or "N/A"
-# #         ])
-
-# #     # Ajuste automático de ancho de columnas, ignorando celdas combinadas
-# #     for col_index, col in enumerate(ws.columns, start=1):
-# #         max_length = 0
-# #         for cell in col:
-# #             if not isinstance(cell, MergedCell) and cell.value is not None:
-# #                 cell_length = len(str(cell.value))
-# #                 if cell_length > max_length:
-# #                     max_length = cell_length
-# #         col_letter = get_column_letter(col_index)
-# #         ws.column_dimensions[col_letter].width = max_length + 2
-
-# #     response = HttpResponse(
-# #         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-# #     )
-# #     response['Content-Disposition'] = f'attachment; filename=FUID_{fuid.id}.xlsx'
-# #     wb.save(response)
-# #     return response

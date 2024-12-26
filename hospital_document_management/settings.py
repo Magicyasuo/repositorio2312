@@ -46,10 +46,13 @@ INSTALLED_APPS = [
     'documentos',  # Nuestra aplicación personalizada
     'adminlte3',
     'adminlte3_theme',
+    'corsheaders',
+
 ]
 
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # Este debe ir primero
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -57,6 +60,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'django.middleware.common.CommonMiddleware',
+
 ]
 
 ROOT_URLCONF = "hospital_document_management.urls"
@@ -137,6 +142,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 LOGIN_URL = '/registros/login/'
 LOGOUT_REDIRECT_URL = '/registros/login/'
@@ -202,5 +209,5 @@ TEMPLATES = [
         },
     },
 ]
-
+        
 

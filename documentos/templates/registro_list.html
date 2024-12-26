@@ -150,47 +150,48 @@ $('#tablaRegistros').DataTable({
       type: "GET",
   },
   columns: [
-  { data: 'numero_orden' },
-  { data: 'codigo' },
-  { data: 'codigo_serie' },
-  { data: 'codigo_subserie' },
-  { data: 'unidad_documental' },
-  { data: 'fecha_archivo' },
-  {
-    data: 'soporte_fisico',
-    render: function(data) {
-      return data ? '✔' : '✖';
+    { data: 'numero_orden' },
+    { data: 'codigo' },
+    { data: 'codigo_serie' },
+    { data: 'codigo_subserie' },
+    { data: 'unidad_documental' },
+    { data: 'fecha_archivo' },
+    {
+      data: 'soporte_fisico',
+      render: function(data) {
+        return data ? '✔' : '✖';
+      }
+    },
+    {
+      data: 'soporte_electronico',
+      render: function(data) {
+        return data ? '✔' : '✖';
+      }
+    },
+    { data: 'creado_por' },
+    {
+      data: null,
+      orderable: false,
+      searchable: false,
+      render: function(data, type, row) {
+        return `
+          <a href="/editar_registro/${row.id}/" class="btn btn-warning btn-sm">
+            <i class="bi bi-pencil"></i> Editar
+          </a>
+          <a href="/eliminar_registro/${row.id}/" class="btn btn-danger btn-sm">
+            <i class="bi bi-trash"></i> Eliminar
+          </a>
+        `;
+      }
     }
-  },
-  {
-    data: 'soporte_electronico',
-    render: function(data) {
-      return data ? '✔' : '✖';
-    }
-  },
-  { data: 'creado_por' },
-  {
-    data: null,
-    orderable: false,
-    searchable: false,
-    render: function(data, type, row) {
-      return `
-        <a href="/editar_registro/${row.id}/" class="btn btn-warning btn-sm">
-          <i class="bi bi-pencil"></i> Editar
-        </a>
-        <a href="/eliminar_registro/${row.id}/" class="btn btn-danger btn-sm">
-          <i class="bi bi-trash"></i> Eliminar
-        </a>
-      `;
-    }
-  }
-],
-
+  ],
   language: {
-    // tu configuración de idioma...
+    // Configuración de idioma personalizada...
   },
   pageLength: 50,
+  dom: '<"top"lf>rt<"bottom"ip><"clear">' // Quita el cuadro de búsqueda general
 });
+
 </script>
     
 </body>
